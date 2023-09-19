@@ -4943,9 +4943,22 @@ var
 function RoundToEx(const AValue: Extended; const ADigit: TRoundToRange): Extended;
 var
   LFactor: Extended;
+  SafeQuotient : Comp;
+  CarefulInt : Int64;
+  TestRes : Extended;
 begin
   LFactor := IntPower(10, ADigit);
-  Result := Round(AValue / LFactor) * LFactor;
+
+  if(LFactor > 0) then begin
+    SafeQuotient := AValue / LFactor;
+    CarefulInt := Round(SafeQuotient);
+    if(CarefulInt < High(Int64)) then begin
+      Result := CarefulInt * LFactor;
+    end else
+      Exit;
+//    Result := CarefulInt * LFactor;
+  end
+//  Result := Round() * LFactor;
 end;
 
 function DoSingleSameValue(const A, B: Single): Boolean;
@@ -16766,6 +16779,7 @@ begin
               SetLength(FloatsAtOffSet, Succ(Offset));
 
             try
+
               f2 := RoundToEx(f, -3); {>>> Floating Point Violation <<<}
               if (f2 <> 0) and (Abs(f-f2) < 0.0002) then begin
                 if (f2 > -1000000) and (f2 < 1000000) then begin
@@ -17832,10 +17846,17 @@ begin
 end;
 
 function TwbResolvableDef.Check(aBasePtr, aEndPtr: Pointer; const aElement: IwbElement): string;
+var
+  def : IwbValueDef;
 begin
-  Result := ResolveDef(aBasePtr, aEndPtr, aElement).Check(aBasePtr, aEndPtr, aElement);
-  if Assigned(ndToStr) then
-    ndToStr(Result, aBasePtr, aEndPtr, aElement, ctCheck);
+  def := ResolveDef(aBasePtr, aEndPtr, aElement);
+  if Assigned(def) and not (def = nil) then begin
+    Result := def.Check(aBasePtr, aEndPtr, aElement);
+    if Assigned(ndToStr) then
+      ndToStr(Result, aBasePtr, aEndPtr, aElement, ctCheck);
+  end else begin
+    Result := '';
+  end
 end;
 
 constructor TwbUnionDef.Clone(const aSource: TwbDef);
